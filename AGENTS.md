@@ -19,6 +19,7 @@ Implementation notes for `eijiro-search.el`.
 - Modes:
   - `text`: literal search (`regexp-quote`)
   - `fuzzy`: subsequence pattern (`.*` between characters), heuristic rerank
+    with acronym/initials bonus (e.g. `wysiwyg`)
   - `regex`: pass ripgrep regex with EIJIRO-aware `^`/`$` rewrites
 - Options:
   - include description (`include-description`)
@@ -61,6 +62,8 @@ Additional rules:
 - In non-regex modes, prefix refinement/merge may run when:
   - primary hits reached max count, or
   - exact headword is missing from current primary set.
+- In `fuzzy` headword-only mode, an additional acronym-word-pattern query may be
+  merged (e.g. `wysiwyg` -> `what you see is what you get`).
 - Final display is truncated to max results again.
 
 ## Redirect / Reference Resolution

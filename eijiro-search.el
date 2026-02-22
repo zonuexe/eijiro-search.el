@@ -91,6 +91,40 @@
                  chars
                  ".*"))))
 
+(defun eijiro-search--fuzzy-initials (text case-sensitive)
+  "Return acronym-like initials extracted from TEXT with CASE-SENSITIVE."
+  (let* ((s (eijiro-search--normalize (or text "") case-sensitive))
+         (words (split-string s "[^[:alnum:]]+" t))
+         (initials nil))
+    (dolist (w words)
+      (push (substring w 0 1) initials))
+    (apply #'concat (nreverse initials))))
+
+(defun eijiro-search--fuzzy-subsequence-p (needle haystack)
+  "Return non-nil when NEEDLE is a subsequence of HAYSTACK."
+  (let ((pos -1)
+        (ok t))
+    (cl-loop for ch across needle
+             do (let ((idx (cl-position ch haystack :start (1+ pos) :test #'=)))
+                  (if idx
+                      (setq pos idx)
+                    (setq ok nil))))
+    ok))
+
+(defun eijiro-search--fuzzy-acronym-word-pattern (query)
+  "Return word-initial regex pattern for acronym-like QUERY.
+For example, \"wysiwyg\" becomes a pattern matching
+\"what you see is what you get\"."
+  (let* ((needle (eijiro-search--fuzzy-needle query))
+         (chars (string-to-list needle)))
+    (when (and (>= (length chars) 2)
+               (string-match-p "\\`[[:alnum:]]+\\'" needle))
+      (mapconcat (lambda (char)
+                   (concat (regexp-quote (string char))
+                           "[[:alnum:]'_-]*"))
+                 chars
+                 "[[:space:]]+"))))
+
 (defun eijiro-search--regex-pattern-for-rg (query &optional include-description)
   "Rewrite regex QUERY for rg over EIJIRO line format.
 When INCLUDE-DESCRIPTION is non-nil, `$' can also match before `◆'."
@@ -190,6 +224,7 @@ Return nil (no match), `boundary' (match touches boundary), or `embedded'."
 Return nil if unmatched."
   (let* ((needle (eijiro-search--normalize (eijiro-search--fuzzy-needle query) case-sensitive))
          (haystack (eijiro-search--normalize (or target "") case-sensitive))
+         (initials (eijiro-search--fuzzy-initials target case-sensitive))
          (pos -1)
          (prev nil)
          (start nil)
@@ -217,6 +252,14 @@ Return nil if unmatched."
                       (setq pos idx
                             prev idx))))
       (when matched
+        ;; Acronym/initials bonus: e.g. "wysiwyg" for
+        ;; "What You See Is What You Get".
+        (when (not (string-empty-p initials))
+          (cond
+           ((string= needle initials)
+            (setq score (+ score 180)))
+           ((eijiro-search--fuzzy-subsequence-p needle initials)
+            (setq score (+ score 60)))))
         (- score (* 3 (or start 0)))))))
 
 (defun eijiro-search--run-command-lines (program args)
@@ -639,10 +682,29 @@ Use CASE-SENSITIVE for matching."
          (primary (if include-description
                       primary-all
                     (eijiro-search--headword-filter primary-all pattern case-sensitive)))
+         (acronym-pattern (and (string= search-mode "fuzzy")
+                               (not include-description)
+                               (eijiro-search--fuzzy-acronym-word-pattern query)))
+         (primary+acronym
+          (if acronym-pattern
+              (let* ((acronym-rg-pattern
+                      (format "^■%s[[:space:]]*(?:\\{[^}]+\\})?[[:space:]]*:"
+                              acronym-pattern))
+                     (acronym-all
+                      (eijiro-search--run-rg-entries-with-pattern
+                       acronym-rg-pattern
+                       case-sensitive))
+                     (acronym
+                      (eijiro-search--headword-filter
+                       acronym-all
+                       acronym-pattern
+                       case-sensitive)))
+                (eijiro-search--merge-entries primary acronym))
+            primary))
          (needs-prefix-refine (and (not (string= search-mode "regex"))
                                    (or (>= (length primary-all) eijiro-search-max-results)
                                        (not (eijiro-search--contains-exact-headword-p
-                                             primary query case-sensitive)))))
+                                             primary+acronym query case-sensitive)))))
          (merged (if needs-prefix-refine
                      (let* ((prefix-headword-pattern
                              (format "^■%s" (regexp-quote query)))
@@ -653,8 +715,8 @@ Use CASE-SENSITIVE for matching."
                             (prefix-pattern (format "^%s" (regexp-quote query)))
                             (prefix (eijiro-search--headword-filter
                                      prefix-all prefix-pattern case-sensitive)))
-                       (eijiro-search--merge-entries primary prefix))
-                   primary))
+                       (eijiro-search--merge-entries primary+acronym prefix))
+                   primary+acronym))
          (sorted (if (string= search-mode "fuzzy")
                      (eijiro-search--fuzzy-sort-entries
                       merged query include-description case-sensitive)
