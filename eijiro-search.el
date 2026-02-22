@@ -4,7 +4,7 @@
 
 ;; Author: USAMI Kenta <tadsan@zonu.me>
 ;; Created: 15 Feb 2026
-;; Keywords: data
+;; Keywords: matching
 ;; Homepage: https://github.com/zonuexe/eijiro-search.el
 ;; Version: 0.0.1
 ;; Package-Requires: ((emacs "29.1") (vui "1.0.0"))

@@ -1,16 +1,16 @@
 (package "eijiro-search"
          "0.0.1"
-         "Interactive EIJIRO search interface")
+         "Interactive dictionary search interface")
 
-(website-url "git@github.com:zonuexe/eijiro-search.el.git")
-(keywords )
+(website-url "https://github.com/zonuexe/eijiro-search.el")
+(keywords "matching")
 
 (package-file "eijiro-search.el")
 
-(script "test" "echo \"Error: no test specified\" && exit 1")
+(script "test" "eask test ert ./test/eijiro-search-test.el")
 
 (source "gnu")
 (source "melpa")
 
-(depends-on "emacs" "30.1")
+(depends-on "emacs" "29.1")
 (depends-on "vui" "1.0.0")
