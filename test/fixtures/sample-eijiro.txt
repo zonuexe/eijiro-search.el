@@ -1,0 +1,22 @@
+■party : 《名》パーティー
+■Party : 【発音】[US] pɑrti、[UK] pɑ:ti◆〔社交の〕集まり
+■party line : 〈米〉政党の公式見解
+■party pooper : 〔くだけた〕しらけさせる人
+■what you see is what you get : 《コ》見たとおりのものが結果に反映されること◆【略】WYSIWYG ; WYSWYG
+■lisp : 【発音】li'sp、【変化】《動》lisps | lisping | lisped
+■lisp  {名-1} : 〔子どもなどの〕舌足らずな話し方
+■lisp  {名-2} : 《言語学》歯擦音の異常発音◆sやzがthと発声されること。
+■placeholder __ : value＿with_placeholder
+■split-demo : first◆second■third■・bullet
+■redirect-a : <→redirect-b>
+■redirect-b : ＝<→redirect-c>
+■redirect-c : final meaning
+■regional-spelling : 〈英〉→british-spelling
+■arrow-only : →target-word
+■target-word : reached by arrow redirect
+■ref-demo : 【参考】ref-a ; ref-b
+■ref-a : reference A
+■ref-b : reference B
+■cycle-a : <→cycle-b>
+■cycle-b : <→cycle-a>
+■self-cycle : <→self-cycle>
