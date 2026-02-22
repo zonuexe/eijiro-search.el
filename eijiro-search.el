@@ -546,9 +546,17 @@ Returns a list of words found in <→...> markers."
       (let* ((raw (string-trim (match-string 1 text)))
              (refs (split-string raw "[;；]" t "[[:space:]\n\r\t]+")))
         (dolist (ref refs)
-          (let ((r (string-trim ref)))
-            (unless (string-empty-p r)
-              (push r targets)))))
+          (let* ((r (string-trim ref))
+                 ;; Normalize references like "Greek alphabet（ギリシャ文字）"
+                 ;; to the lookup target "Greek alphabet".
+                 (lookup (string-trim
+                          (replace-regexp-in-string
+                           "[[:space:]]*[（(].*\\'" "" r))))
+            ;; Only lookup ASCII reference terms like "foo's bar-bar".
+            ;; Non-ASCII references (e.g., Japanese labels) are ignored.
+            (when (and (not (string-empty-p lookup))
+                       (string-match-p "\\`[A-Za-z][A-Za-z0-9' -]*\\'" lookup))
+              (push lookup targets)))))
       (setq pos (min (length text) (max (1+ pos) (match-end 0)))))
     (nreverse targets)))
 
@@ -657,14 +665,21 @@ Use CASE-SENSITIVE for matching."
 
 (defun eijiro-search--result-rows (entries redirect-map case-sensitive)
   "Convert ENTRIES to table rows using REDIRECT-MAP and CASE-SENSITIVE."
-  (let ((rows nil))
+  (let ((rows nil)
+        (inserted-lines (make-hash-table :test 'eql)))
     (dolist (entry entries)
       (setq rows (nconc rows (eijiro-search--expand-entry-rows entry)))
       (dolist (target (eijiro-search--redirect-targets entry))
         (let ((resolved (gethash (eijiro-search--normalize target case-sensitive)
                                  redirect-map)))
           (when resolved
-            (setq rows (nconc rows (eijiro-search--expand-entry-rows resolved t)))))))
+            (let ((line (plist-get resolved :line-number)))
+              (unless (and line (gethash line inserted-lines))
+                (when line
+                  (puthash line t inserted-lines))
+                (setq rows (nconc rows (eijiro-search--expand-entry-rows
+                                        resolved
+                                        t)))))))))
     rows))
 
 (defun eijiro-search--result-view (entries redirect-map case-sensitive)
